@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>女巫的毒药 - 双人对战</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1a0a2e 0%, #2d1b4e 50%, #1a0a2e 100%);
+            min-height: 100vh;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .game-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #8a2be2, 0 0 20px #8a2be2, 0 0 30px #8a2be2;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px #8a2be2, 0 0 20px #8a2be2;
+            }
+            to {
+                text-shadow: 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff;
+            }
+        }
+
+        .game-phase {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(138, 43, 226, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(138, 43, 226, 0.5);
+        }
+
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            gap: 10px;
+        }
+
+        .player-card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .player-card.player1 {
+            background: rgba(0, 191, 255, 0.2);
+            border: 2px solid #00bfff;
+        }
+
+        .player-card.player2 {
+            background: rgba(255, 69, 0, 0.2);
+            border: 2px solid #ff4500;
+        }
+
+        .player-card.active {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .player-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .player-status {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .items-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .item-card {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #3d2a5c, #2d1b4e);
+            border: 2px solid rgba(138, 43, 226, 0.5);
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            padding: 10px;
+            user-select: none;
+        }
+
+        .item-card:hover:not(.disabled):not(.eliminated):not(.poison) {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(138, 43, 226, 0.4);
+            border-color: #8a2be2;
+        }
+
+        .item-card.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .item-card.eliminated {
+            opacity: 0.3;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .item-card.poison {
+            background: linear-gradient(145deg, #4a0e0e, #2d0a0a);
+            border-color: #ff0000;
+            animation: poisonPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes poisonPulse {
+            0%, 100% { box-shadow: 0 0 10px #ff0000; }
+            50% { box-shadow: 0 0 25px #ff0000, 0 0 50px #ff0000; }
+        }
+
+        .item-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .item-name {
+            font-size: 0.85rem;
+            text-align: center;
+            word-wrap: break-word;
+        }
+
+        .message-box {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin-bottom: 20px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .message {
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .game-result {
+            text-align: center;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .result-title {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            animation: resultGlow 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes resultGlow {
+            from { text-shadow: 0 0 10px #ffd700; }
+            to { text-shadow: 0 0 20px #ffd700, 0 0 30px #ffd700; }
+        }
+
+        .result-message {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #8a2be2, #6a1bb2);
+            color: white;
+            box-shadow: 0 5px 15px rgba(138, 43, 226, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(138, 43, 226, 0.6);
+        }
+
+        .btn-container {
+            text-align: center;
+        }
+
+        .start-screen {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .game-description {
+            font-size: 1rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .game-description h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #8a2be2;
+        }
+
+        .game-description ul {
+            padding-left: 20px;
+        }
+
+        .game-description li {
+            margin-bottom: 10px;
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .game-title {
+                font-size: 1.8rem;
+            }
+
+            .game-phase {
+                font-size: 1rem;
+                padding: 10px;
+            }
+
+            .player-info {
+                flex-direction: column;
+            }
+
+            .items-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .item-icon {
+                font-size: 2rem;
+            }
+
+            .item-name {
+                font-size: 0.75rem;
+            }
+
+            .message {
+                font-size: 0.95rem;
+            }
+
+            .btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">🧙‍♀️ 女巫的毒药</h1>
+        
+        <div id="start-screen" class="start-screen">
+            <div class="game-description">
+                <h3>📜 游戏规则</h3>
+                <ul>
+                    <li>🧙‍♀️ 桌面上有 <strong>8 个不同的物品</strong></li>
+                    <li>☠️ 两位玩家轮流游戏，<strong>先选择一个物品作为自己的毒药</strong></li>
+                    <li>🎯 选择完毕后，<strong>双方轮流点选桌面上的物品</strong></li>
+                    <li>💀 如果<strong>选中了对方的毒药</strong>，你就失败了！</li>
+                    <li>✨ 如果<strong>未选中对方的毒药</strong>，该物品会从桌面消失</li>
+                    <li>🏆 持续点选直到有人选中对方的毒药，游戏结束！</li>
+                </ul>
+            </div>
+            <div class="btn-container">
+                <button class="btn btn-primary" onclick="startGame()">开始游戏</button>
+            </div>
+        </div>
+
+        <div id="game-screen" style="display: none;">
+            <div class="player-info">
+                <div id="player1-card" class="player-card player1">
+                    <div class="player-name">👤 玩家 1</div>
+                    <div id="player1-status" class="player-status">等待选择</div>
+                </div>
+                <div id="player2-card" class="player-card player2">
+                    <div class="player-name">👤 玩家 2</div>
+                    <div id="player2-status" class="player-status">等待选择</div>
+                </div>
+            </div>
+
+            <div id="game-phase" class="game-phase">🎮 选择毒药阶段</div>
+
+            <div id="message-box" class="message-box">
+                <div id="message" class="message">玩家 1，请选择一个物品作为你的毒药</div>
+            </div>
+
+            <div id="items-grid" class="items-grid"></div>
+
+            <div id="game-result" class="game-result" style="display: none;">
+                <div id="result-title" class="result-title"></div>
+                <div id="result-message" class="result-message"></div>
+                <div class="btn-container">
+                    <button class="btn btn-primary" onclick="restartGame()">再来一局</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ITEMS = [
+            { id: 1, name: '魔法水晶', icon: '💎' },
+            { id: 2, name: '月光草', icon: '🌙' },
+            { id: 3, name: '幽灵蘑菇', icon: '🍄' },
+            { id: 4, name: '龙鳞碎片', icon: '🐉' },
+            { id: 5, name: '凤凰羽毛', icon: '🪶' },
+            { id: 6, name: '星尘粉末', icon: '✨' },
+            { id: 7, name: '暗影之眼', icon: '👁️' },
+            { id: 8, name: '时空沙漏', icon: '⏳' },
+            { id: 9, name: '精灵之泪', icon: '💧' },
+            { id: 10, name: '地狱火焰', icon: '🔥' },
+            { id: 11, name: '冰封之心', icon: '❄️' },
+            { id: 12, name: '神秘符文', icon: '🔮' }
+        ];
+
+        let gameState = {
+            phase: 'start',
+            currentPlayer: 1,
+            player1Poison: null,
+            player2Poison: null,
+            eliminatedItems: [],
+            gameItems: []
+        };
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            document.getElementById('game-result').style.display = 'none';
+            
+            gameState = {
+                phase: 'choose-poison',
+                currentPlayer: 1,
+                player1Poison: null,
+                player2Poison: null,
+                eliminatedItems: [],
+                gameItems: shuffleArray(ITEMS).slice(0, 8)
+            };
+
+            updatePlayerStatus();
+            updateMessage();
+            renderItems();
+            updateGamePhase();
+        }
+
+        function renderItems() {
+            const grid = document.getElementById('items-grid');
+            grid.innerHTML = '';
+
+            gameState.gameItems.forEach(item => {
+                const isEliminated = gameState.eliminatedItems.includes(item.id);
+                const isPlayer1Poison = item.id === gameState.player1Poison;
+                const isPlayer2Poison = item.id === gameState.player2Poison;
+                
+                const itemCard = document.createElement('div');
+                itemCard.className = 'item-card fade-in';
+                itemCard.dataset.id = item.id;
+                
+                if (isEliminated) {
+                    itemCard.classList.add('eliminated');
+                } else if (gameState.phase === 'gameover') {
+                    if (isPlayer1Poison || isPlayer2Poison) {
+                        itemCard.classList.add('poison');
+                    }
+                } else if (gameState.phase === 'choose-poison') {
+                    if ((gameState.currentPlayer === 1 && isPlayer2Poison) || 
+                        (gameState.currentPlayer === 2 && isPlayer1Poison)) {
+                        itemCard.classList.add('disabled');
+                    }
+                }
+                
+                itemCard.innerHTML = `
+                    <div class="item-icon">${item.icon}</div>
+                    <div class="item-name">${item.name}</div>
+                `;
+                
+                itemCard.onclick = () => handleItemClick(item.id);
+                grid.appendChild(itemCard);
+            });
+        }
+
+        function handleItemClick(itemId) {
+            if (gameState.phase === 'gameover') return;
+            
+            const isEliminated = gameState.eliminatedItems.includes(itemId);
+            if (isEliminated) return;
+
+            if (gameState.phase === 'choose-poison') {
+                if (gameState.currentPlayer === 1) {
+                    if (itemId === gameState.player2Poison) return;
+                    gameState.player1Poison = itemId;
+                    gameState.currentPlayer = 2;
+                } else {
+                    if (itemId === gameState.player1Poison) return;
+                    gameState.player2Poison = itemId;
+                    gameState.currentPlayer = 1;
+                    gameState.phase = 'play';
+                }
+                updatePlayerStatus();
+                updateMessage();
+                renderItems();
+                updateGamePhase();
+            } else if (gameState.phase === 'play') {
+                const opponentPoison = gameState.currentPlayer === 1 ? gameState.player2Poison : gameState.player1Poison;
+                
+                if (itemId === opponentPoison) {
+                    endGame(gameState.currentPlayer);
+                } else {
+                    gameState.eliminatedItems.push(itemId);
+                    gameState.currentPlayer = gameState.currentPlayer === 1 ? 2 : 1;
+                    updatePlayerStatus();
+                    updateMessage();
+                    renderItems();
+                    
+                    if (gameState.eliminatedItems.length >= 6) {
+                        endGame(gameState.currentPlayer === 1 ? 2 : 1);
+                    }
+                }
+            }
+        }
+
+        function endGame(losingPlayer) {
+            gameState.phase = 'gameover';
+            const winningPlayer = losingPlayer === 1 ? 2 : 1;
+            
+            const resultTitle = document.getElementById('result-title');
+            const resultMessage = document.getElementById('result-message');
+            
+            resultTitle.textContent = `🎉 玩家 ${winningPlayer} 获胜！`;
+            resultMessage.textContent = `玩家 ${losingPlayer} 不幸选中了玩家 ${winningPlayer} 的毒药！`;
+            
+            document.getElementById('game-result').style.display = 'block';
+            
+            updatePlayerStatus();
+            renderItems();
+            updateGamePhase();
+            
+            document.getElementById('game-screen').classList.add('shake');
+            setTimeout(() => {
+                document.getElementById('game-screen').classList.remove('shake');
+            }, 500);
+        }
+
+        function updatePlayerStatus() {
+            const player1Status = document.getElementById('player1-status');
+            const player2Status = document.getElementById('player2-status');
+            
+            if (gameState.phase === 'start') {
+                player1Status.textContent = '等待选择';
+                player2Status.textContent = '等待选择';
+            } else if (gameState.phase === 'choose-poison') {
+                player1Status.textContent = gameState.player1Poison ? '已选择毒药 ✓' : '等待选择';
+                player2Status.textContent = gameState.player2Poison ? '已选择毒药 ✓' : '等待选择';
+            } else if (gameState.phase === 'play') {
+                player1Status.textContent = gameState.currentPlayer === 1 ? '👆 你的回合' : '等待中...';
+                player2Status.textContent = gameState.currentPlayer === 2 ? '👆 你的回合' : '等待中...';
+            } else if (gameState.phase === 'gameover') {
+                player1Status.textContent = gameState.player1Poison === gameState.player2Poison ? '毒药已暴露' : '游戏结束';
+                player2Status.textContent = gameState.player1Poison === gameState.player2Poison ? '毒药已暴露' : '游戏结束';
+            }
+            
+            const player1Card = document.getElementById('player1-card');
+            const player2Card = document.getElementById('player2-card');
+            
+            player1Card.classList.remove('active');
+            player2Card.classList.remove('active');
+            
+            if (gameState.phase === 'play') {
+                if (gameState.currentPlayer === 1) {
+                    player1Card.classList.add('active');
+                } else {
+                    player2Card.classList.add('active');
+                }
+            }
+        }
+
+        function updateMessage() {
+            const message = document.getElementById('message');
+            const messageBox = document.getElementById('message-box');
+            
+            if (gameState.phase === 'choose-poison') {
+                if (gameState.currentPlayer === 1) {
+                    message.textContent = '👤 玩家 1，请选择一个物品作为你的毒药';
+                } else {
+                    message.textContent = '👤 玩家 2，请选择一个物品作为你的毒药（不要选玩家1已选的！）';
+                }
+            } else if (gameState.phase === 'play') {
+                message.textContent = `👆 玩家 ${gameState.currentPlayer} 的回合 - 请点击一个物品`;
+            }
+            
+            messageBox.classList.add('fade-in');
+        }
+
+        function updateGamePhase() {
+            const phaseElement = document.getElementById('game-phase');
+            
+            if (gameState.phase === 'choose-poison') {
+                phaseElement.textContent = '☠️ 选择毒药阶段';
+            } else if (gameState.phase === 'play') {
+                phaseElement.textContent = '🎯 游戏进行中';
+            } else if (gameState.phase === 'gameover') {
+                phaseElement.textContent = '🏆 游戏结束';
+            }
+        }
+
+        function restartGame() {
+            startGame();
+        }
+    </script>
+</body>
+</html>
